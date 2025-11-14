@@ -1,6 +1,7 @@
-import React, { useRef } from 'react'
+import React, { useRef, useMemo } from 'react'
 import { motion } from 'framer-motion'
-import Spline from '@splinetool/react-spline'
+import { Canvas, useFrame } from '@react-three/fiber'
+import { OrbitControls, ContactShadows } from '@react-three/drei'
 import { ArrowRight, Github, Linkedin, Mail, ChevronDown, ExternalLink, Code2, Cpu, Boxes, Rocket } from 'lucide-react'
 
 function Section({ id, children, className = '' }) {
@@ -31,9 +32,48 @@ const Container = ({ children }) => (
   <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">{children}</div>
 )
 
-export default function App() {
-  const heroRef = useRef(null)
+// Low-poly premium 3D hero scene
+function LowPolyShape({ color = '#38BDF8' }) {
+  const ref = useRef()
+  // Slow, subtle animation
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime()
+    if (ref.current) {
+      ref.current.rotation.x = Math.sin(t / 4) / 6
+      ref.current.rotation.y = t / 6
+    }
+  })
+  // Keep geometry simple for low poly look
+  return (
+    <mesh ref={ref} castShadow position={[0, 0.4, 0]}>
+      <icosahedronGeometry args={[1.2, 0]} />
+      <meshStandardMaterial color={color} metalness={0.1} roughness={0.85} flatShading />
+    </mesh>
+  )
+}
 
+function HeroScene() {
+  return (
+    <Canvas shadows dpr={[1, 1.5]} camera={{ position: [0, 1.2, 4.2], fov: 42 }} gl={{ antialias: true }}>
+      {/* Soft ambient lighting */}
+      <ambientLight intensity={0.5} />
+      {/* Directional light with soft shadow */}
+      <directionalLight position={[3, 4, 2]} intensity={0.9} castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
+
+      {/* Accent fill light */}
+      <pointLight position={[-3, 1.5, -2]} intensity={0.4} color={'#6ee7ff'} />
+
+      <group position={[0, -0.2, 0]}>
+        <LowPolyShape />
+        <ContactShadows position={[0, -0.2, 0]} opacity={0.35} scale={8} blur={2.5} far={4} />
+      </group>
+
+      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.5} />
+    </Canvas>
+  )
+}
+
+export default function App() {
   const scrollTo = (id) => {
     const el = document.getElementById(id)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -72,9 +112,9 @@ export default function App() {
           <div className="absolute bottom-0 left-0 h-96 w-96 rounded-full bg-white/5 blur-3xl" />
         </div>
 
-        {/* Spline 3D scene */}
-        <div ref={heroRef} className="absolute inset-0 md:left-1/2 h-full z-0">
-          <Spline scene="https://prod.spline.design/VJLoxp84lCdVfdZu/scene.splinecode" style={{ width: '100%', height: '100%' }} />
+        {/* Lightweight R3F Canvas */}
+        <div className="absolute inset-0 md:left-1/2 h-full z-0">
+          <HeroScene />
         </div>
 
         {/* Content overlay */}
@@ -254,9 +294,9 @@ export default function App() {
                 transition={{ duration: 0.5, delay: i * 0.05 }}
                 className="group rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.06] to-white/[0.03] p-5 backdrop-blur-xl hover:shadow-[0_30px_70px_-15px_rgba(56,189,248,0.3)] transition"
               >
-                <div className="relative h-48 rounded-xl overflow-hidden border border-white/10">
+                <div className="relative h-48 rounded-xl overflow-hidden border border-white/10 will-change-transform transform-gpu">
                   <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.25),transparent_40%),radial-gradient(circle_at_80%_20%,rgba(255,255,255,0.08),transparent_40%)]" />
-                  <div className="absolute inset-0 transform group-hover:rotate-1 group-hover:scale-[1.02] transition will-change-transform" />
+                  <div className="absolute inset-0 transition-transform duration-300 ease-out group-hover:rotate-1 group-hover:scale-[1.02]" />
                 </div>
                 <div className="mt-4">
                   <h3 className="text-xl font-semibold">{p.title}</h3>
@@ -294,7 +334,7 @@ export default function App() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm text-white/70">Name</label>
-                    <input required type="text" className="mt-1 w-full rounded-lg bg-black/40 border border-white/10 px-4 py-2 outline-none focus:ring-2 focus:ring-[#38BDF8]" placeholder="Your name" />
+                    <input required type="text" className="mt-1 w-full rounded-lg bg.black/40 border border-white/10 px-4 py-2 outline-none focus:ring-2 focus:ring-[#38BDF8]" placeholder="Your name" />
                   </div>
                   <div>
                     <label className="text-sm text-white/70">Email</label>
@@ -335,7 +375,7 @@ export default function App() {
       {/* Footer */}
       <footer className="py-10 text-center text-white/50">
         <Container>
-          <p className="text-sm">© {new Date().getFullYear()} Zayn — Built with React, Tailwind, and a touch of 3D.</p>
+          <p className="text-sm">© {new Date().getFullYear()} Zayn — Built with React, Tailwind, and lightweight 3D.</p>
         </Container>
       </footer>
     </div>
